@@ -1,2 +1,114 @@
 # mukcnp-iftar-scanner
 MUKCNP Grand Iftar 2027 QR Ticket Scanner
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUKCNP Iftar QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #d4af37;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 450px;
+      margin: 20px auto;
+    }
+
+    #message {
+      margin: 20px auto;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    button {
+      background: #d4af37;
+      color: black;
+      border: none;
+      padding: 14px 25px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>MUKCNP GRAND IFTAR 2027</h2>
+  <h3>OFFICIAL TICKET SCANNER</h3>
+
+  <div id="reader"></div>
+
+  <p id="message">Press START SCANNER to scan a ticket.</p>
+
+  <button onclick="startScanner()">START SCANNER</button>
+
+  <script>
+    let scanner;
+
+    function extractTicket(decodedText) {
+      try {
+        const url = new URL(decodedText);
+        return url.searchParams.get("ticket") || decodedText.trim();
+      } catch (error) {
+        return decodedText.trim();
+      }
+    }
+
+    async function startScanner() {
+      document.getElementById("message").innerText =
+        "Opening camera...";
+
+      try {
+        scanner = new Html5Qrcode("reader");
+
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+
+          async function(decodedText) {
+            const ticket = extractTicket(decodedText);
+
+            document.getElementById("message").innerText =
+              "Ticket scanned: " + ticket;
+
+            await scanner.stop();
+
+            if (window.opener && !window.opener.closed) {
+              window.opener.postMessage({
+                type: "MUKCNP_TICKET_SCANNED",
+                ticket: ticket
+              }, "*");
+
+              document.getElementById("message").innerText =
+                "Ticket sent for verification. Please check the official portal.";
+            } else {
+              document.getElementById("message").innerText =
+                "No official portal detected. Please open the scanner from the official portal.";
+            }
+          }
+        );
+
+      } catch (error) {
+        document.getElementById("message").innerText =
+          "Camera error: " + error;
+      }
+    }
+  </script>
+
+</body>
+</html>
